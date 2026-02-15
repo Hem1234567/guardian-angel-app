@@ -14,16 +14,140 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          created_at: string
+          id: string
+          is_volunteer: boolean
+          mobile: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_volunteer?: boolean
+          mobile?: string
+          name?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_volunteer?: boolean
+          mobile?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      sos_requests: {
+        Row: {
+          created_at: string
+          id: string
+          latitude: number
+          longitude: number
+          status: Database["public"]["Enums"]["sos_status"]
+          updated_at: string
+          user_id: string
+          volunteer_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          latitude: number
+          longitude: number
+          status?: Database["public"]["Enums"]["sos_status"]
+          updated_at?: string
+          user_id: string
+          volunteer_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          latitude?: number
+          longitude?: number
+          status?: Database["public"]["Enums"]["sos_status"]
+          updated_at?: string
+          user_id?: string
+          volunteer_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sos_requests_volunteer_id_fkey"
+            columns: ["volunteer_id"]
+            isOneToOne: false
+            referencedRelation: "volunteers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      volunteers: {
+        Row: {
+          available: boolean
+          created_at: string
+          credit_points: number
+          id: string
+          latitude: number
+          longitude: number
+          mobile: string
+          name: string
+          role: string
+          specialty: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          available?: boolean
+          created_at?: string
+          credit_points?: number
+          id?: string
+          latitude?: number
+          longitude?: number
+          mobile?: string
+          name?: string
+          role?: string
+          specialty?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          available?: boolean
+          created_at?: string
+          credit_points?: number
+          id?: string
+          latitude?: number
+          longitude?: number
+          mobile?: string
+          name?: string
+          role?: string
+          specialty?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      award_credit_points: {
+        Args: { _points: number; _volunteer_id: string }
+        Returns: undefined
+      }
+      is_volunteer: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      sos_status:
+        | "pending"
+        | "accepted"
+        | "attended"
+        | "completed"
+        | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +274,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      sos_status: ["pending", "accepted", "attended", "completed", "cancelled"],
+    },
   },
 } as const

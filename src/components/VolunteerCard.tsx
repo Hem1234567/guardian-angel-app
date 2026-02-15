@@ -3,7 +3,6 @@ import { Phone, MapPin, Star, Stethoscope, Pill, HeartPulse, FlaskConical } from
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { Volunteer } from "@/data/mockVolunteers";
 
 const roleIcons: Record<string, React.ReactNode> = {
   Doctor: <Stethoscope className="h-3.5 w-3.5" />,
@@ -19,9 +18,20 @@ const roleColors: Record<string, string> = {
   Compounder: "bg-teal-100 text-teal-800",
 };
 
+export interface VolunteerCardData {
+  id: string;
+  name: string;
+  mobile: string;
+  role: string;
+  specialty?: string | null;
+  credit_points: number;
+  distance: number;
+  avatar: string;
+}
+
 interface VolunteerCardProps {
-  volunteer: Volunteer & { distance: number };
-  onCall: (volunteer: Volunteer) => void;
+  volunteer: VolunteerCardData;
+  onCall: (volunteer: VolunteerCardData) => void;
   isNearest?: boolean;
 }
 
@@ -46,7 +56,7 @@ const VolunteerCard = ({ volunteer, onCall, isNearest }: VolunteerCardProps) => 
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold text-foreground truncate">{volunteer.name}</h3>
           <div className="flex items-center gap-2 mt-0.5">
-            <Badge variant="secondary" className={`text-xs gap-1 ${roleColors[volunteer.role]}`}>
+            <Badge variant="secondary" className={`text-xs gap-1 ${roleColors[volunteer.role] || ""}`}>
               {roleIcons[volunteer.role]}
               {volunteer.role}
             </Badge>
@@ -62,7 +72,7 @@ const VolunteerCard = ({ volunteer, onCall, isNearest }: VolunteerCardProps) => 
         <div className="flex flex-col items-end gap-2">
           <span className="flex items-center gap-0.5 text-xs text-warning">
             <Star className="h-3 w-3 fill-current" />
-            {volunteer.creditPoints}
+            {volunteer.credit_points}
           </span>
           <Button
             size="sm"
