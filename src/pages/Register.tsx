@@ -4,6 +4,8 @@ import { UserPlus, Stethoscope, HeartPulse, Pill, FlaskConical, CheckCircle2 } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 const roles = [
@@ -14,16 +16,60 @@ const roles = [
 ] as const;
 
 const Register = () => {
+  const { user } = useAuth();
   const { toast } = useToast();
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ name: "", mobile: "", role: "", specialty: "" });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name || !form.mobile || !form.role) {
+    if (!form.name || !form.mobile || !form.role || !user) {
       toast({ title: "Please fill all required fields", variant: "destructive" });
       return;
     }
+
+    setLoading(true);
+
+    // Get user location
+    let lat = 28.6139, lng = 77.2090;
+    try {
+      const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
+        navigator.geolocation.getCurrentPosition(resolve, reject)
+      );
+      lat = pos.coords.latitude;
+      lng = pos.coords.longitude;
+    } catch {}
+
+    const { error } = await supabase.from("volunteers").insert({
+      user_id: user.id,
+      name: form.name,
+      mobile: form.mobile,
+      role: form.role,
+      specialty: form.specialty || null,
+      latitude: lat,
+      longitude: lng,
+      available: true,
+    });
+
+    // Update profile
+    await supabase.from("profiles").update({
+      name: form.name,
+      mobile: form.mobile,
+      is_volunteer: true,
+    }).eq("user_id", user.id);
+
+    setLoading(false);
+
+    if (error) {
+      if (error.code === "23505") {
+        toast({ title: "Already registered as volunteer", variant: "destructive" });
+      } else {
+        toast({ title: "Registration failed", description: error.message, variant: "destructive" });
+      }
+      return;
+    }
+
     setSubmitted(true);
     toast({ title: "✅ Registration successful!", description: "You are now a registered medical volunteer." });
   };
@@ -31,20 +77,13 @@ const Register = () => {
   if (submitted) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background pb-20 px-4">
-        <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="text-center"
-        >
+        <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center">
           <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-success/10">
             <CheckCircle2 className="h-12 w-12 text-success" />
           </div>
           <h2 className="text-2xl font-bold text-foreground">Welcome, {form.name}!</h2>
           <p className="mt-2 text-muted-foreground">You're now registered as a <strong>{form.role}</strong></p>
           <p className="mt-1 text-sm text-muted-foreground">You'll receive emergency calls from nearby patients.</p>
-          <Button onClick={() => setSubmitted(false)} variant="outline" className="mt-6">
-            Register Another
-          </Button>
         </motion.div>
       </div>
     );
@@ -60,33 +99,15 @@ const Register = () => {
       </header>
 
       <div className="mx-auto max-w-md px-4 pt-6">
-        <motion.form
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          onSubmit={handleSubmit}
-          className="space-y-5"
-        >
+        <motion.form initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-2">
             <Label htmlFor="name">Full Name *</Label>
-            <Input
-              id="name"
-              placeholder="Dr. John Doe"
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-            />
+            <Input id="name" placeholder="Dr. John Doe" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           </div>
-
           <div className="space-y-2">
             <Label htmlFor="mobile">Mobile Number *</Label>
-            <Input
-              id="mobile"
-              type="tel"
-              placeholder="+91 98765 43210"
-              value={form.mobile}
-              onChange={(e) => setForm({ ...form, mobile: e.target.value })}
-            />
+            <Input id="mobile" type="tel" placeholder="+91 98765 43210" value={form.mobile} onChange={(e) => setForm({ ...form, mobile: e.target.value })} />
           </div>
-
           <div className="space-y-2">
             <Label>Medical Role *</Label>
             <div className="grid grid-cols-2 gap-3">
@@ -96,30 +117,20 @@ const Register = () => {
                   type="button"
                   onClick={() => setForm({ ...form, role: value })}
                   className={`flex items-center gap-2 rounded-xl border-2 px-4 py-3 text-sm font-medium transition-all ${
-                    form.role === value
-                      ? "border-primary bg-primary/5 text-primary"
-                      : "border-border text-muted-foreground hover:border-primary/50"
+                    form.role === value ? "border-primary bg-primary/5 text-primary" : "border-border text-muted-foreground hover:border-primary/50"
                   }`}
                 >
-                  <Icon className="h-4 w-4" />
-                  {label}
+                  <Icon className="h-4 w-4" /> {label}
                 </button>
               ))}
             </div>
           </div>
-
           <div className="space-y-2">
             <Label htmlFor="specialty">Specialty (Optional)</Label>
-            <Input
-              id="specialty"
-              placeholder="e.g. Emergency Medicine"
-              value={form.specialty}
-              onChange={(e) => setForm({ ...form, specialty: e.target.value })}
-            />
+            <Input id="specialty" placeholder="e.g. Emergency Medicine" value={form.specialty} onChange={(e) => setForm({ ...form, specialty: e.target.value })} />
           </div>
-
-          <Button type="submit" className="w-full bg-primary text-primary-foreground" size="lg">
-            Register as Volunteer
+          <Button type="submit" className="w-full" size="lg" disabled={loading}>
+            {loading ? "Registering..." : "Register as Volunteer"}
           </Button>
         </motion.form>
       </div>
